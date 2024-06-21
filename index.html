@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schiffe Versenken</title>
+    <style>
+        .splf { 
+            /*Spielfeld Rahmen*/
+            border: 2px solid black; 
+            margin: 10px;
+            width: 360px;
+            text-align: center;
+        }
+        .grid {
+            /*Feld Grid*/
+            display: grid; 
+            grid-template-columns: repeat(11, 1fr); 
+            gap: 1px;
+        }
+        .cell {
+            /*Raster*/
+            width: 30px;
+            height: 30px;
+            border: 1px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ship {
+            /*Schiff Farbe*/
+            background-color: lightblue;
+        }
+        .container {
+            /*  Elemente innerhalb des Rasters zu steuern */
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="splf">
+            <h1>Player 1</h1>
+            <div id="grid" class="grid"></div>
+        </div>
+        <div class="splf">
+            <h1>Player 2</h1>
+            <div id="grid2" class="grid"></div>
+        </div>
+    </div>
+    
+    <script>
+        /*Spielfeld*/
+        const BOARD_SIZE = 10;
+        /*Schiffarten*/
+        const SHIPS = [
+            { name: "Carrier", length: 5 },
+            { name: "Battleship", length: 4 },
+            { name: "Cruiser", length: 3 },
+            { name: "Submarine", length: 3 },
+            { name: "Destroyer", length: 2 }
+        ];
+        /*ein leeres Feld erstellen*/
+        function createBoard(size) {
+            return Array.from({ length: size }, () => Array(size).fill(0));
+        }
+        /*ob ein Schiff platziert werden darf, ohne andere Schiffe gestört wird*/
+        function canPlaceShip(board, ship, row, col, direction) {
+            if (direction === 'horizontal') {
+                if (col + ship.length > BOARD_SIZE) return false;
+                for (let i = 0; i < ship.length; i++) {
+                    if (board[row][col + i] !== 0) return false;
+                }
+            } else { // vertical
+                if (row + ship.length > BOARD_SIZE) return false;
+                for (let i = 0; i < ship.length; i++) {
+                    if (board[row + i][col] !== 0) return false;
+                }
+            }
+            return true;
+        }
+        /* Schiff platzieren */
+        function placeShip(board, ship, row, col, direction) {
+            if (direction === 'horizontal') {
+                for (let i = 0; i < ship.length; i++) {
+                    board[row][col + i] = ship.name[0];
+                }
+            } else { // vertical
+                for (let i = 0; i < ship.length; i++) {
+                    board[row + i][col] = ship.name[0];
+                }
+            }
+        }
+        /*alle Schiffe platzieren, d.h. es wiederholt die function placeship bis alle 5 Schiffe platziert wurden*/
+        function placeAllShips(board, ships) {
+            ships.forEach(ship => {
+                let placed = false;
+                while (!placed) {
+                    const row = Math.floor(Math.random() * BOARD_SIZE);
+                    const col = Math.floor(Math.random() * BOARD_SIZE);
+                    const direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+                    if (canPlaceShip(board, ship, row, col, direction)) {
+                        placeShip(board, ship, row, col, direction);
+                        placed = true;
+                    }
+                }
+            });
+        }
+        /*Spielfeld Legende*/
+        function displayBoard(gridElement, board) {
+            gridElement.innerHTML = ''; // Clear previous content
+            const letters = [" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]; //horizontale Legende
+            
+            for (let row = 0; row <= BOARD_SIZE; row++) {
+                for (let col = 0; col <= BOARD_SIZE; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    
+                    if (row === 0) {
+                        cell.textContent = letters[col];
+                    } else if (col === 0) {
+                        cell.textContent = row;
+                    } else {
+                        const content = board[row - 1][col - 1];
+                        cell.textContent = content === 0 ? '' : content;
+                        if (content !== 0) {
+                            cell.classList.add('ship');
+                        }
+                    }
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        /*Spielfeld erstellen und Schiff platzieren*/
+        const board1 = createBoard(BOARD_SIZE);
+        const board2 = createBoard(BOARD_SIZE);
+        placeAllShips(board1, SHIPS);
+        placeAllShips(board2, SHIPS);
+
+        /*Spielfeld anzeigen*/
+        displayBoard(document.getElementById('grid'), board1);
+        displayBoard(document.getElementById('grid2'), board2);
+    </script>
+</body>
+</html>
