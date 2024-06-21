@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <script src="webcam.js"></script>
+    <!-- https://blog.tensorflow.org/2019/11/handtrackjs-tracking-hand-interactions.html -->
+    <!-- bei dem link unten gibts noch n paar methoden, die ganz gut sind -->
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js"> </script>
+</head>
+
+<body>
+    <div style="display: flex;">
+        <div style="margin: 10px;">
+            <h1>Camera</h1>
+            <!-- div for the webcam -->
+            <div id="my_camera" style="width:320px; height:240px;"></div>
+        </div>
+        <div style=" margin: 10px;">
+            <h1>Canvas</h1>
+            <!-- Canvas, for displaying the "snapshot" -->
+            <canvas id="myCanvas" style="border:1px solid #000000;" width="320ps" height="240px"></canvas>
+        </div>
+    </div>
+    <!-- auxiliary div (hilfs div) -->
+    <div id="invis" style="display: none;"></div>
+
+    <script language="JavaScript">
+
+        //Put the webcam in the div above
+        Webcam.attach('#my_camera');
+
+        //take a snapshot of the current frame of the webcam
+        function take_snapshot() {
+
+            Webcam.snap(function (data_uri) {
+                //put the image from the Webcam into a div to convert it to a usable formate
+                document.getElementById('invis').innerHTML = '<img id="bild" onload="drawCanvas()" src="' + data_uri + '"/>';
+                //get the image from inside the auxilary div
+                const img = document.getElementById('bild');
+                //display image in canvas
+                img.onload = function () {
+                    document.getElementById('myCanvas')
+                        .getContext('2d')
+                        .drawImage(document.getElementById('bild'), 0, 0);
+                }
+                //get prediction
+                handTrack.load().then(model => {
+                    model.detect(img).then(predictions => {
+                        console.log('Predictions: ', predictions) // bbox predictions
+                    });
+                });
+            });
+        }
+
+    </script>
+    <br>
+    <a href="javascript:void(take_snapshot())">Take Snapshot</a>
+
+</body>
+
+</html>
