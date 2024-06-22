@@ -141,12 +141,14 @@
                 return [-1, -1];
             }
         }
-        var prevLabel = 'closed'
+        var prevLabel = 'closed';
+        var prevBBOX = [0, 0, 0, 0];
         function runDetection() {
             model.detect(video).then(predictions => {
                 context.clearRect(0, 0, canvas.width, canvas.height);  // Clear previous frame
 
                 const handPredictions = predictions.filter(pred => pred.label != 'face');
+                model.renderPredictions(handPredictions, canvas, context, video);
 
                 // Log only if there are hand predictions
                 if (handPredictions.length > 0) {
@@ -154,11 +156,16 @@
                     var y0 = canvas.height / 8;
                     var predictonX = getCenterXY(handPredictions[0].bbox)[0];
                     var predictonY = getCenterXY(handPredictions[0].bbox)[1];
-                    /*/
+                    console.log(x0);
+                    console.log(y0);
+                    console.log(predictonX);
+                    console.log(predictonY);
+
                     drawLine(
                         x0, y0,
                         predictonX, predictonY
-                    );*/
+                    );
+
                     if (handPredictions[0].label == 'open' && prevLabel == 'closed') {
                         console.log(handPredictions);
                         let x = getCenterXY(prevBBOX)[0];
@@ -169,7 +176,6 @@
                     prevBBOX = handPredictions[0].bbox;
                     prevLabel = handPredictions[0].label;
                 }
-                model.renderPredictions(handPredictions, canvas, context, video);
                 drawScope();
                 //drawField();
 
