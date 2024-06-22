@@ -1,25 +1,24 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schiffe Versenken</title>
+    <title>Schiffe versenken</title>
+    <meta charset="utf-8">
     <style>
+        /*Feld Rahmen*/
         .splf { 
-            /*Spielfeld Rahmen*/
             border: 2px solid black; 
             margin: 10px;
             width: 360px;
             text-align: center;
         }
+        /*Feld Grid*/
         .grid {
-            /*Feld Grid*/
             display: grid; 
             grid-template-columns: repeat(11, 1fr); 
             gap: 1px;
         }
+        /*Feld Raster*/
         .cell {
-            /*Raster*/
             width: 30px;
             height: 30px;
             border: 1px solid black;
@@ -27,28 +26,47 @@
             align-items: center;
             justify-content: center;
         }
+        /*Schiff Farbe*/
         .ship {
-            /*Schiff Farbe*/
             background-color: lightblue;
         }
+        /*Treffer Farbe*/
+        .hit {
+            background-color: red;
+        }
+        /*Miss Farbe*/
+        .miss {
+            background-color: gray;
+        }
+        /*Elemente innerhalb des Rasters zu steuern*/
         .container {
-            /*  Elemente innerhalb des Rasters zu steuern */
             display: flex;
+        }
+        /*Message*/
+        #message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid black;
+            padding: 10px;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="splf">
+        <div id="game-board1" class="splf"> 
             <h1>Player 1</h1>
-            <div id="grid" class="grid"></div>
+            <div id="grid1" class="grid"></div>
         </div>
-        <div class="splf">
+        <div id="game-board2" class="splf">
             <h1>Player 2</h1>
             <div id="grid2" class="grid"></div>
         </div>
     </div>
-    
+    <div id="message"></div>
     <script>
         /*Spielfeld*/
         const BOARD_SIZE = 10;
@@ -60,18 +78,19 @@
             { name: "Submarine", length: 3 },
             { name: "Destroyer", length: 2 }
         ];
-        /*ein leeres Feld erstellen*/
+        /*erstellt ein Array, das die Größe von Spielfeld übernimmt und mit 0 füllt*/
         function createBoard(size) {
             return Array.from({ length: size }, () => Array(size).fill(0));
         }
-        /*ob ein Schiff platziert werden darf, ohne andere Schiffe gestört wird*/
+        /*es wird geprüft, ob Schiff platziert werden darf, ohne anderen Schiff zu überlappen*/
         function canPlaceShip(board, ship, row, col, direction) {
             if (direction === 'horizontal') {
+                /*ob Spalte + Shifflänge größer als Spielfeld ist*/
                 if (col + ship.length > BOARD_SIZE) return false;
                 for (let i = 0; i < ship.length; i++) {
                     if (board[row][col + i] !== 0) return false;
                 }
-            } else { // vertical
+            } else {
                 if (row + ship.length > BOARD_SIZE) return false;
                 for (let i = 0; i < ship.length; i++) {
                     if (board[row + i][col] !== 0) return false;
@@ -79,68 +98,131 @@
             }
             return true;
         }
-        /* Schiff platzieren */
+        /*ein Schiff platzieren*/
         function placeShip(board, ship, row, col, direction) {
             if (direction === 'horizontal') {
                 for (let i = 0; i < ship.length; i++) {
                     board[row][col + i] = ship.name[0];
                 }
-            } else { // vertical
+            } else {
                 for (let i = 0; i < ship.length; i++) {
                     board[row + i][col] = ship.name[0];
                 }
             }
         }
-        /*alle Schiffe platzieren, d.h. es wiederholt die function placeship bis alle 5 Schiffe platziert wurden*/
+        /*function "placeship" wiederholen bis alle Schiffe platziert wurden*/
         function placeAllShips(board, ships) {
             ships.forEach(ship => {
                 let placed = false;
+                /*Die Schleife läuft, bis das Schiff erfolgreich platziert wurde*/
                 while (!placed) {
+                    /*Random Zeile und Spalte generieren*/
+                    /*Math.floor -> abrunden; */
+                    /*Math.random * BOARD_SIZE -> Generiert eine random Zahl zwischen 0  und der BOARD_SIZE*/
                     const row = Math.floor(Math.random() * BOARD_SIZE);
                     const col = Math.floor(Math.random() * BOARD_SIZE);
+                    /*Random Richtung generieren*/
                     const direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+                    /*Prüfen, ob das Schiff Platz hat*/
                     if (canPlaceShip(board, ship, row, col, direction)) {
+                        /*Wenn Platz ist, Schiff platzieren*/
                         placeShip(board, ship, row, col, direction);
                         placed = true;
                     }
                 }
             });
         }
-        /*Spielfeld Legende*/
-        function displayBoard(gridElement, board) {
-            gridElement.innerHTML = ''; // Clear previous content
+        /*Darstellung des Spielbretts und bietet die Möglichkeit, durch Mausklick den Zellen zu steuern*/
+        function displayBoard(gridElement, board, isClickable) {
+            gridElement.innerHTML = ''; 
             const letters = [" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]; //horizontale Legende
             
             for (let row = 0; row <= BOARD_SIZE; row++) {
                 for (let col = 0; col <= BOARD_SIZE; col++) {
                     const cell = document.createElement('div');
                     cell.classList.add('cell');
-                    
+                    /*Legende hinzufügen*/
                     if (row === 0) {
                         cell.textContent = letters[col];
                     } else if (col === 0) {
                         cell.textContent = row;
                     } else {
+                        /*Spielfeld Array wird gelesen*/
+                        /*Wenn der Inhalt 0 ist, bleibt die Zelle leer, 
+                        andernfalls wird der erste Buchstabe des Schiffsnamens eingefügt*/
                         const content = board[row - 1][col - 1];
                         cell.textContent = content === 0 ? '' : content;
                         if (content !== 0) {
                             cell.classList.add('ship');
+                        }
+                        if (isClickable) {
+                            cell.dataset.row = row - 1;
+                            cell.dataset.col = col - 1;
+                            cell.dataset.clicked = 'false';
+                            cell.addEventListener('click', function() {
+                                bombCell(cell, board);
+                            });
                         }
                     }
                     gridElement.appendChild(cell);
                 }
             }
         }
-
-        /*Spielfeld erstellen und Schiff platzieren*/
+        /*Messeges
+        es zeigt für eine kurze Zeit und wird wieder ausgeblendet*/
+        function showMessage(message) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = message;
+            messageElement.style.display = 'block';
+            setTimeout(() => {
+                messageElement.style.display = 'none'; //Funktion für Messeges ausblenden
+            }, 1000);
+        }
+        /*ob ein bestimmtes Schiff vollständig versenkt wurde
+        d.h. die Zellen auf dem Spielbrett (board) werden durchsucht und prüft, ob alle Teile des Schiffs getroffen wurden*/
+        function isShipSunk(board, row, col, shipName) {
+            const shipCells = [];
+            /*wenn in die Zelle bereits Inhalte hat, wird sie in die shipcell hinzugefüt*/
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === shipName) {
+                        shipCells.push({ row: r, col: c });
+                    }
+                }
+            }
+            /*ob alle Elemente mit "Hit" angezeigt werden*/
+            return shipCells.every(cell => document.querySelector(`[data-row='${cell.row}'][data-col='${cell.col}']`).classList.contains('hit'));
+        }
+        /*Angriff wird durchgeführt, */
+        function bombCell(cell, board) {
+            if (cell.dataset.clicked === 'true') {
+                showMessage("Bereits geschossen!");
+                return;
+            }
+            const row = cell.dataset.row;
+            const col = cell.dataset.col;
+            if (board[row][col] !== 0) {
+                cell.classList.add('hit');
+                showMessage("Hit!");
+                if (isShipSunk(board, row, col, board[row][col])) {
+                    showMessage("Versenkt!");
+                }
+            } else {
+                cell.classList.add('miss');
+                showMessage("Miss!");
+            }
+            cell.dataset.clicked = 'true';
+        }
+        /*Spielfeld wird auf Display angzeigt und Schiffe platziert*/
         const board1 = createBoard(BOARD_SIZE);
         const board2 = createBoard(BOARD_SIZE);
         placeAllShips(board1, SHIPS);
         placeAllShips(board2, SHIPS);
 
-        /*Spielfeld anzeigen*/
-        displayBoard(document.getElementById('grid'), board1);
-        displayBoard(document.getElementById('grid2'), board2);
+        const grid1 = document.getElementById('grid1');
+        const grid2 = document.getElementById('grid2');
+        displayBoard(grid1, board1, false);
+        displayBoard(grid2, board2, true);
     </script>
 </body>
 </html>
