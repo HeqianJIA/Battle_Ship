@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Detection with Handtrack.js</title>
+    <title>Schiffle versenken</title>
     <style>
         body {
             background-color: black;
@@ -14,7 +14,7 @@
 </head>
 
 <body>
-    <h1>Hand Detection with Handtrack.js</h1>
+    <h1>Schiffle versenken</h1>
     <video id="video" width="720" height="640" autoplay style="display: none;"></video>
     <canvas id="canvas" width="520" height="440"></canvas>
     <button style="display: none;" id="Go" onclick="urTrun()">Start yourt Turn</button>
@@ -25,15 +25,17 @@
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
 
+        //Achsenbeschriftungen
         const xArray = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
         const yArray = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
+        //model parameter einstellen
         let model = null;
         const modelParams = {
             flipHorizontal: true
         };
 
-        // Load the Handtrack.js model
+        //model laden
         handTrack.load(modelParams).then(lmodel => {
             model = lmodel;
             startVideo();
@@ -50,16 +52,18 @@
             });
         }
 
+        //wurde nur zum debuggen verwendet - ist für die funktion nicht relevant
         function drawPoint(x, y) {
-
             const radius = 3;
             context.fillStyle = 'red';
             context.beginPath();
             context.arc(x, y, radius, 0, 2 * Math.PI);
             context.fill();
-
         }
 
+        //berechnet den Mittelpunkt der bbox
+        //Gegebene Daten:
+        //x links oben, y links oben, Breite, Höhe
         function getCenterXY(bbox) {
             x = bbox[0];
             y = bbox[1];
@@ -68,37 +72,41 @@
             return [x + width / 2, y + height / 2];
         }
 
+        //Zeichnet Eine Linie zwischen zwei Punkten
         function drawLine(beginx, beginy, endx, endy) {
             context.beginPath();
-            context.moveTo(beginx, beginy);   // Move to the starting point
-            context.lineTo(endx, endy);     // Draw a line to the ending point
-            context.strokeStyle = 'blue'; // Set line color
-            context.lineWidth = 2;       // Set line width
-            context.stroke();            // Draw the line
+            context.moveTo(beginx, beginy);
+            context.lineTo(endx, endy);
+            context.strokeStyle = 'blue';
+            context.lineWidth = 2;
+            context.stroke();
         }
 
+        //Zeichnet die Orientierungslinien zum Zielen
         function drawScope() {
             var x0 = canvas.width / 2;
             var y0 = canvas.height / 8;
-            //horizontal
+            //Horizontale
             drawLine(0, y0, canvas.width, y0);
-            //angled line right
+            //Angewinkelte rechts
             drawLine(
-                x0, y0, //beginning point
-                x0 + (canvas.width / 5), canvas.height //ending point
+                x0, y0,
+                x0 + (canvas.width / 5), canvas.height
             );
-            //angled line left
+            //Angewinkelte links
             drawLine(
-                x0, y0, //beginning point
-                x0 - (canvas.width / 5), canvas.height //ending point
+                x0, y0,
+                x0 - (canvas.width / 5), canvas.height
             );
-            //vertical line
+            //Vertikale
             drawLine(
-                x0, 0, //beginning point
-                x0, canvas.height //ending point
+                x0, 0,
+                x0, canvas.height
             );
         }
 
+        //Zeichnet ein Raster, welches anzeigt, wo die Bombe beim Gegner landet
+        //(wurde nur zum debuggen verwendet und soll nicht angezeigt werden, weil es sonst zu einfach wäre)
         function drawField() {
             var x = canvas.width / 5;
             var y = canvas.height / 4;
@@ -119,6 +127,7 @@
             }
         }
 
+        //Berechnet das Gegnerische Feld, in dem Die Bombe landet, wenn man an der Stelle x,y die Hand auf macht
         function calcEnemyField(x, y) {
 
             var xOffset = (canvas.width / 5) * 1.25;
@@ -131,9 +140,8 @@
 
             var xIndex = Math.floor((x - xOffset) / xLenth);
             var yIndex = Math.floor((y - yOffset) / yLenth);
-            console.log(xIndex);
-            console.log(yIndex);
 
+            //wir haben ein 10x10 Feld -> Indexe von 0 bis 9 sind ein Treffer, der Rest ist außerhalb
             if ((0 <= xIndex <= 9) && (0 <= yIndex <= 9)) {
                 return [xArray[xIndex], yArray[yIndex]];
             }
@@ -141,29 +149,39 @@
                 return [-1, -1];
             }
         }
+
+        //Erkennt die Handposition und die Handgeste
         var prevLabel = 'closed';
         var prevBBOX = [0, 0, 0, 0];
         function runDetection() {
             model.detect(video).then(predictions => {
-                context.clearRect(0, 0, canvas.width, canvas.height);  // Clear previous frame
+                context.clearRect(0, 0, canvas.width, canvas.height);  //Canvas leeren
 
-                const handPredictions = predictions.filter(pred => pred.label != 'face');
+                //wir wollen nur die Gesten "offene Hand" und "geschlossene Hand" erkennen
+                const handPredictions = predictions.filter(pred => pred.label === 'open' || pred.label === 'closed');
+                //Bounding Boxen anzeigen
                 model.renderPredictions(handPredictions, canvas, context, video);
 
-                // Log only if there are hand predictions
+                //Nur etwas mache, wenn auch  eine Geste erkannt wurde
                 if (handPredictions.length > 0) {
+                    //Fixer Ausganspunkt (da, wo sich die Linien des Skopes treffen)
                     var x0 = canvas.width / 2;
                     var y0 = canvas.height / 8;
+
+                    //Position der aktuellen Hand
                     var predictonX = getCenterXY(handPredictions[0].bbox)[0];
                     var predictonY = getCenterXY(handPredictions[0].bbox)[1];
 
+                    //Linie zwischen dem Ausgangspunkt und der aktuellen Hand zeichnen
                     drawLine(
                         x0, y0,
                         predictonX, predictonY
                     );
 
+                    //Hand zuerst geschlossen und dann geöffnet?
                     if (handPredictions[0].label == 'open' && prevLabel == 'closed') {
-                        console.log(handPredictions);
+                        //Koordinaten der geschlossenen Hand nehmen,
+                        //weil sich beim Öffnen der Hand der Mittelpunkt verschiebt)
                         let x = getCenterXY(prevBBOX)[0];
                         let y = getCenterXY(prevBBOX)[1];
 
@@ -173,8 +191,6 @@
                     prevLabel = handPredictions[0].label;
                 }
                 drawScope();
-                //drawField();
-
                 requestAnimationFrame(runDetection);
             });
         }

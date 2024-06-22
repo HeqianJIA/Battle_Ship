@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Schiffe versenken</title>
     <meta charset="utf-8">
     <style>
         /*Feld Rahmen*/
-        .splf { 
-            border: 2px solid black; 
+        .splf {
+            border: 2px solid black;
             margin: 10px;
             width: 360px;
             text-align: center;
         }
+
         /*Feld Grid*/
         .grid {
-            display: grid; 
-            grid-template-columns: repeat(11, 1fr); 
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
             gap: 1px;
         }
+
         /*Feld Raster*/
         .cell {
             width: 30px;
@@ -26,22 +29,27 @@
             align-items: center;
             justify-content: center;
         }
+
         /*Schiff Farbe*/
         .ship {
             background-color: lightblue;
         }
+
         /*Treffer Farbe*/
         .hit {
             background-color: red;
         }
+
         /*Miss Farbe*/
         .miss {
             background-color: gray;
         }
+
         /*Elemente innerhalb des Rasters zu steuern*/
         .container {
             display: flex;
         }
+
         /*Message*/
         #message {
             position: fixed;
@@ -55,9 +63,10 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <div id="game-board1" class="splf"> 
+        <div id="game-board1" class="splf">
             <h1>Player 1</h1>
             <div id="grid1" class="grid"></div>
         </div>
@@ -134,9 +143,9 @@
         }
         /*Darstellung des Spielbretts und bietet die Möglichkeit, durch Mausklick den Zellen zu steuern*/
         function displayBoard(gridElement, board, isClickable) {
-            gridElement.innerHTML = ''; 
+            gridElement.innerHTML = '';
             const letters = [" ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]; //horizontale Legende
-            
+
             for (let row = 0; row <= BOARD_SIZE; row++) {
                 for (let col = 0; col <= BOARD_SIZE; col++) {
                     const cell = document.createElement('div');
@@ -159,7 +168,7 @@
                             cell.dataset.row = row - 1;
                             cell.dataset.col = col - 1;
                             cell.dataset.clicked = 'false';
-                            cell.addEventListener('click', function() {
+                            cell.addEventListener('click', function () {
                                 bombCell(cell, board);
                             });
                         }
@@ -225,4 +234,5 @@
         displayBoard(grid2, board2, true);
     </script>
 </body>
+
 </html>
