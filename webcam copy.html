@@ -3,33 +3,181 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Document</title>
-    <script src="webcam.js"></script>
-    <!-- bei dem link unten gibts noch n paar methoden, die ganz gut sind -->
-    <!-- https://blog.tensorflow.org/2019/11/handtrackjs-tracking-hand-interactions.html -->
-    <script src="https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js"> </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Detection with Handtrack.js</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Camera</h1>
-    <!-- div for the webcam -->
-    <div id="my_camera" style="width:320px; height:240px;"></div>
+    <h1>Hand Detection with Handtrack.js</h1>
+    <video id="video" width="720" height="640" autoplay style="display: none;"></video>
+    <canvas id="canvas" width="520" height="440"></canvas>
+    <button style="display: none;" id="Go" onclick="urTrun()">Start yourt Turn</button>
 
-    <h1>Canvas</h1>
-    <!-- Canvas, for displaying the "snapshot" -->
-    <canvas id="myCanvas" style="border:1px solid #000000;" width="320ps" height="240px"></canvas>
-    <!-- auxiliary div (hilfs div) -->
-    <div id="invis" style="display: none;"></div>
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js"></script>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
 
-    <script language="JavaScript">
-        handTrack.load().then(startVideo(video))
+        const xArray = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+        const yArray = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
 
+        let model = null;
+        const modelParams = {
+            flipHorizontal: true
+        };
 
+        // Load the Handtrack.js model
+        handTrack.load(modelParams).then(lmodel => {
+            model = lmodel;
+            startVideo();
+        });
+
+        function startVideo() {
+            handTrack.startVideo(video).then(status => {
+                if (status) {
+                    console.log("Video started. Now tracking.");
+                    runDetection();
+                } else {
+                    console.log("Please enable video");
+                }
+            });
+        }
+
+        function drawPoint(x, y) {
+
+            const radius = 3;
+            context.fillStyle = 'red';
+            context.beginPath();
+            context.arc(x, y, radius, 0, 2 * Math.PI);
+            context.fill();
+
+        }
+
+        function getCenterXY(bbox) {
+            x = bbox[0];
+            y = bbox[1];
+            width = bbox[2];
+            height = bbox[3];
+            return [x + width / 2, y + height / 2];
+        }
+
+        function drawLine(beginx, beginy, endx, endy) {
+            context.beginPath();
+            context.moveTo(beginx, beginy);   // Move to the starting point
+            context.lineTo(endx, endy);     // Draw a line to the ending point
+            context.strokeStyle = 'blue'; // Set line color
+            context.lineWidth = 2;       // Set line width
+            context.stroke();            // Draw the line
+        }
+
+        function drawScope() {
+            var x0 = canvas.width / 2;
+            var y0 = canvas.height / 8;
+            //horizontal
+            drawLine(0, y0, canvas.width, y0);
+            //angled line right
+            drawLine(
+                x0, y0, //beginning point
+                x0 + (canvas.width / 5), canvas.height //ending point
+            );
+            //angled line left
+            drawLine(
+                x0, y0, //beginning point
+                x0 - (canvas.width / 5), canvas.height //ending point
+            );
+            //vertical line
+            drawLine(
+                x0, 0, //beginning point
+                x0, canvas.height //ending point
+            );
+        }
+
+        function drawField() {
+            var x = canvas.width / 5;
+            var y = canvas.height / 4;
+
+            var cnt = 1;
+            for (let i = 0; i <= 10; i++) {
+                cnt += .25
+                //horizontal
+                drawLine(
+                    x * 1.25, y * cnt,
+                    x * 3.75, y * cnt
+                );
+                //vertical
+                drawLine(
+                    x * cnt, y * 1.25,
+                    x * cnt, y * 3.75
+                );
+            }
+        }
+
+        function calcEnemyField(x, y) {
+
+            var xOffset = (canvas.width / 5) * 1.25;
+            var yOffset = (canvas.height / 4) * 1.25;
+            //drawPoint(xOffset, yOffset, 0);
+
+            var xLenth = xOffset / 5;
+            var yLenth = yOffset / 5;
+            //drawPoint(xOffset + xLenth, yOffset + yLenth, 0);
+
+            var xIndex = Math.floor((x - xOffset) / xLenth);
+            var yIndex = Math.floor((y - yOffset) / yLenth);
+            console.log(xIndex);
+            console.log(yIndex);
+
+            if ((0 <= xIndex <= 9) && (0 <= yIndex <= 9)) {
+                return [xArray[xIndex], yArray[yIndex]];
+            }
+            else {
+                return [-1, -1];
+            }
+        }
+        var prevLabel = 'closed'
+        function runDetection() {
+            model.detect(video).then(predictions => {
+                context.clearRect(0, 0, canvas.width, canvas.height);  // Clear previous frame
+
+                const handPredictions = predictions.filter(pred => pred.label != 'face');
+
+                // Log only if there are hand predictions
+                if (handPredictions.length > 0) {
+                    var x0 = canvas.width / 2;
+                    var y0 = canvas.height / 8;
+                    var predictonX = getCenterXY(handPredictions[0].bbox)[0];
+                    var predictonY = getCenterXY(handPredictions[0].bbox)[1];
+                    /*/
+                    drawLine(
+                        x0, y0,
+                        predictonX, predictonY
+                    );*/
+                    if (handPredictions[0].label == 'open' && prevLabel == 'closed') {
+                        console.log(handPredictions);
+                        let x = getCenterXY(prevBBOX)[0];
+                        let y = getCenterXY(prevBBOX)[1];
+
+                        console.log(calcEnemyField(x, y));
+                    }
+                    prevBBOX = handPredictions[0].bbox;
+                    prevLabel = handPredictions[0].label;
+                }
+                model.renderPredictions(handPredictions, canvas, context, video);
+                drawScope();
+                //drawField();
+
+                requestAnimationFrame(runDetection);
+            });
+        }
 
     </script>
-    <br>
-    <a href="javascript:void(take_snapshot())">Take Snapshot</a>
-
 </body>
 
 </html>
